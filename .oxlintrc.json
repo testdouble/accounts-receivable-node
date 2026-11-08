@@ -1,0 +1,52 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "node", "promise", "vitest", "unicorn", "oxc"],
+  // Broad categories on, then a small number of rules turned off with a reason. The
+  // point of `pedantic` is that it surfaces things worth an explicit decision.
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "error",
+    "perf": "error"
+  },
+  "rules": {
+    // The rules this project exists to enforce. `prefer-nullish-coalescing` is the one
+    // that guards the override-of-zero invariant in src/domain/pricing.ts, and
+    // `strict-boolean-expressions` catches the same mistake written as `if (override)`.
+    // Both need type information, which is why ./lint.sh passes --type-aware.
+    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/strict-boolean-expressions": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "eqeqeq": ["error", "always"],
+    "no-console": "error",
+
+    // OFF: fires on every Drizzle table-extras callback and on every domain function
+    // that takes a plain options object. typescript-eslint ships this rule off by
+    // default and documents it as very noisy; the readonly-ness it wants would have to
+    // be threaded through Drizzle's generated types, which we do not own.
+    "typescript/prefer-readonly-parameter-types": "off",
+
+    // OFF: src/domain/errors.ts holds three six-line sibling error classes that are
+    // only meaningful as a set. Splitting them across three files to satisfy a counter
+    // would make the layer harder to read, not easier.
+    "eslint/max-classes-per-file": "off"
+  },
+  "overrides": [
+    {
+      // These four are CLIs and one error handler; printing is their job.
+      "files": ["src/server.ts", "src/seed.ts", "src/db/migrate.ts", "src/api/errors.ts"],
+      "rules": { "no-console": "off" }
+    },
+    {
+      // Factory helpers index into Drizzle's `.returning()` array, where the row is
+      // known to exist; the alternative is a null check in every factory.
+      "files": ["tests/**"],
+      "rules": { "typescript/no-non-null-assertion": "off" }
+    }
+  ],
+  "ignorePatterns": ["drizzle/**", "node_modules/**", "coverage/**"]
+}
