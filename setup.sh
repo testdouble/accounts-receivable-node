@@ -32,7 +32,16 @@ echo "    npm $("$NPM" --version) (from $(asdf where nodejs)/bin)"
 echo "==> Installing dependencies"
 # `npm ci`, not `npm install`: it installs package-lock.json exactly and fails loudly if
 # the lockfile and package.json disagree, rather than quietly resolving something new.
-"$NPM" ci
+#
+# --ignore-scripts because nothing here needs a postinstall, and one package is actively
+# harmed by it. better-sqlite3 ships Node-API prebuilds for all eight platforms inside
+# its own tarball, but it also ships the binding.gyp it would need to build from source,
+# and npm reacts to that file by running `node-gyp rebuild` -- which wants Python and a
+# C++ toolchain this project otherwise has no use for, and fails the install outright
+# when they are missing. Skipping scripts uses the prebuild, which is the binary a source
+# build would have produced. esbuild, the only other package with a postinstall, resolves
+# its platform binary through optionalDependencies and does not need one either.
+"$NPM" ci --ignore-scripts
 
 echo "==> Applying migrations"
 node src/db/migrate.ts
