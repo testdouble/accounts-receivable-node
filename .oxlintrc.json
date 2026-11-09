@@ -1,0 +1,83 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "node", "promise", "vitest", "unicorn", "oxc"],
+  // Broad categories on, then a small number of rules turned off with a reason. The
+  // point of `pedantic` is that it surfaces things worth an explicit decision.
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "error",
+    "perf": "error"
+  },
+  "rules": {
+    // The rules this project exists to enforce. `prefer-nullish-coalescing` is the one
+    // that guards the override-of-zero invariant in src/domain/pricing.ts, and
+    // `strict-boolean-expressions` catches the same mistake written as `if (override)`.
+    // Both need type information, which is why ./lint.sh passes --type-aware.
+    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/strict-boolean-expressions": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "eqeqeq": ["error", "always"],
+    "no-console": "error",
+
+    // OFF: fires on every Drizzle table-extras callback and on every domain function
+    // that takes a plain options object. typescript-eslint ships this rule off by
+    // default and documents it as very noisy; the readonly-ness it wants would have to
+    // be threaded through Drizzle's generated types, which we do not own.
+    "typescript/prefer-readonly-parameter-types": "off",
+
+    // OFF: src/domain/errors.ts holds three six-line sibling error classes that are
+    // only meaningful as a set. Splitting them across three files to satisfy a counter
+    // would make the layer harder to read, not easier.
+    "eslint/max-classes-per-file": "off",
+
+    // OFF, both of them. The longest things in this codebase are declarative: the route
+    // tables in src/api/, the status-code dispatch in src/api/errors.ts, and the
+    // invoice/line-item query module. Each reads as one list, and chopping a list in
+    // half to get under a line count makes it harder to check against the Rails app it
+    // ports. Length here is a review question, not a lint one.
+    "eslint/max-lines-per-function": "off",
+    "eslint/max-lines": "off"
+  },
+  "overrides": [
+    {
+      // These four are CLIs and one error handler; printing is their job.
+      "files": ["src/server.ts", "src/seed.ts", "src/db/migrate.ts", "src/api/errors.ts"],
+      "rules": { "no-console": "off" }
+    },
+    {
+      // The seed script and the row counter are sequential by necessity: each phase
+      // depends on rows the previous phase created, and the seed's existence checks
+      // only work if the inserts do not race each other. Promise.all would be wrong
+      // here, not faster.
+      "files": ["src/seed.ts", "src/domain/billing.ts"],
+      "rules": { "no-await-in-loop": "off" }
+    },
+    {
+      "files": ["tests/**"],
+      "rules": {
+        // Factory helpers index into Drizzle's `.returning()` array, where the row is
+        // known to exist; the alternative is a null check in every factory.
+        "typescript/no-non-null-assertion": "off",
+
+        // @types/supertest declares `Response.body` as `any`, so every HTTP assertion
+        // in this directory trips the no-unsafe-* family. The narrowing those rules
+        // want is what the tests already do where it matters: success bodies are
+        // round-tripped through their Zod response schema, which is a stronger check
+        // than a type assertion because it runs. Scoped to tests/ only -- src/ is
+        // still held to the full set.
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/no-unsafe-type-assertion": "off"
+      }
+    }
+  ],
+  "ignorePatterns": ["drizzle/**", "node_modules/**", "coverage/**"]
+}

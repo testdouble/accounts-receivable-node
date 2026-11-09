@@ -1,0 +1,16 @@
+# Node
+node_modules/
+
+# SQLite
+dev.sqlite3
+dev.sqlite3-journal
+dev.sqlite3-shm
+dev.sqlite3-wal
+
+# Tooling
+coverage/
+
+# There is deliberately no dist/ -- this project has no build step. See the README.
+
+# macOS
+.DS_Store

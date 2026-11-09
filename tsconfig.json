@@ -1,0 +1,50 @@
+{
+  // Deliberately extends nothing. This project documents the reason for every tooling
+  // choice it makes, and you cannot annotate an inherited base config.
+  "compilerOptions": {
+    // --- Module system -------------------------------------------------------------
+    // "nodenext" implies moduleResolution: nodenext. Do not set that separately.
+    "module": "nodenext",
+    "target": "esnext",
+    "lib": ["esnext"],
+    // REQUIRED. TypeScript 7 changed the default for "types" to [], so without this
+    // line every Node global (process, Buffer, URL) disappears.
+    "types": ["node"],
+
+    // --- No build step -------------------------------------------------------------
+    // Node strips the types itself, so nothing is ever emitted and tsc is only ever a
+    // type checker (see lint.sh). Relative imports therefore name the real file on
+    // disk -- './foo.ts', not './foo' -- which is what Node resolves.
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    // LOAD-BEARING. Node 26 is strip-only: --experimental-transform-types was removed,
+    // so enums, namespaces with runtime code, and constructor parameter properties are
+    // runtime errors. This flag turns each of them into a compile error instead.
+    "erasableSyntaxOnly": true,
+    // Forces `import type` on type-only imports. Stripping removes nothing but types,
+    // so an un-annotated type import would survive as a real runtime import.
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    // --- Strictness ----------------------------------------------------------------
+    // "strict" is on by default in TypeScript 7; stated anyway so this file is the
+    // whole answer to "how strict is this project".
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useUnknownInCatchVariables": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // better-sqlite3 13 ships no types of its own and @types/better-sqlite3 is stuck at
+    // 9.6.0, so its .d.ts reports errors nobody here can action.
+    "skipLibCheck": true
+  },
+  "include": ["src", "tests", "*.config.ts"]
+}
