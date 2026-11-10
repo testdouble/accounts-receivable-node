@@ -5,10 +5,9 @@
  * are sub-millisecond, so every test file can afford its own schema and no test can see
  * another's rows.
  *
- * The migrator is CALLED, in-process. An earlier abandoned Node port of this app ran
- * `await exec('npm run db:migrate:prod')` once per test file -- npm spawning prisma
- * spawning node -- which cost seconds per file and could not be stepped through.
- * Calling it also means a broken migration fails the test suite, not just the deploy.
+ * The migrator is CALLED, in-process, rather than shelled out to once per test file.
+ * That keeps setup sub-millisecond, is steppable in a debugger, and means a broken
+ * migration fails the test suite, not just the deploy.
  */
 import supertest from 'supertest';
 import { createApp } from '../../src/app.ts';

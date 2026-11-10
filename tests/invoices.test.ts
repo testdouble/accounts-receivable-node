@@ -66,8 +66,6 @@ describe('GET /api/invoices', () => {
   });
 
   it('counts a line item whose catalog row is priced at zero', async () => {
-    // Rails filters these out of both its table and its total. This port does not; see
-    // the README's "Rails behaviour deliberately not ported".
     const invoice = await createInvoice(app.db);
     const freebie = await createProduct(app.db, { priceCents: 0 });
     const paid = await createProduct(app.db, { priceCents: 500 });
@@ -80,8 +78,8 @@ describe('GET /api/invoices', () => {
   });
 
   it('bills the override on a line item whose catalog row is priced at zero', async () => {
-    // The sharpest version of the Rails bug: the row is dropped even though the
-    // override is exactly what should be billed.
+    // The override is exactly what should be billed, even though the catalog row is
+    // free.
     const invoice = await createInvoice(app.db);
     const freebie = await createProduct(app.db, { priceCents: 0 });
     await createLineItem(app.db, {
@@ -127,7 +125,7 @@ describe('POST /api/invoices', () => {
   });
 
   it('is a 422 naming clientId when the client does not exist', async () => {
-    // Rails lets this reach the foreign key and returns a 500. This port checks first.
+    // Checked in the domain layer, so it never reaches the foreign key.
     const response = await app.request.post('/api/invoices').send({ clientId: 99_999 });
 
     expect(response.status).toBe(422);
@@ -184,7 +182,7 @@ describe('PATCH /api/invoices/:id', () => {
 
 describe('DELETE /api/invoices/:id', () => {
   it('takes its line items with it', async () => {
-    // Rails' `has_many :line_items, dependent: :destroy`, as an ON DELETE CASCADE.
+    // ON DELETE CASCADE on the line_items foreign key.
     const invoice = await createInvoice(app.db);
     const service = await createService(app.db);
     const item = await createLineItem(app.db, { invoiceId: invoice.id, serviceId: service.id });

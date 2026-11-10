@@ -27,8 +27,7 @@ function toRecord(row: ClientRow): ClientRecord {
 }
 
 export async function listClients(db: Db): Promise<ClientRecord[]> {
-  // Ordered by id so the list is stable between requests. Rails' `Client.all` is
-  // unordered, which is a latent inconsistency rather than a behaviour worth copying.
+  // Ordered by id so the list is stable between requests.
   const rows = await db.select().from(clients).orderBy(asc(clients.id));
   return rows.map((row) => toRecord(row));
 }

@@ -5,14 +5,14 @@
  * onto status codes, which is what keeps the domain testable without a request.
  */
 
-/** A field path, in the shape Pydantic (and so the Django port) uses: ['body', 'email']. */
+/** A field path: ['body', 'email']. */
 export type Loc = readonly (string | number)[];
 
 /**
  * A well-formed request that breaks a business rule. Becomes a 422.
  *
  * `loc` is optional because some rules are about the record as a whole rather than one
- * field -- the product-or-service rule is Rails' `errors.add(:base, ...)`.
+ * field -- the product-or-service rule is one of those.
  */
 export class DomainValidationError extends Error {
   readonly loc: Loc;

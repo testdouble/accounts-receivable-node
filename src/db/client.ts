@@ -23,6 +23,6 @@ export function openDatabase(url: string) {
   sqlite.pragma('journal_mode = WAL');
 
   // casing: 'snake_case' is what lets src/db/schema.ts declare camelCase properties
-  // against the snake_case column names the Rails schema uses.
+  // against snake_case column names.
   return drizzle(sqlite, { schema, casing: 'snake_case' });
 }

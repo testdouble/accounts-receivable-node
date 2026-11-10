@@ -2,10 +2,8 @@
  * `route()` declares an endpoint once and uses that one declaration both to mount an
  * Express handler and to describe an OpenAPI operation.
  *
- * This adapter exists because Express has no equivalent of Django Ninja's
- * `@router.get(..., response=Schema)` decorator. Writing it is the same move the Django
- * port made when PolyFactory shipped no Django model factory: a small hand-written
- * bridge, with a docstring saying why, and its own tests.
+ * This adapter exists because Express has no way to bind a response schema to a route:
+ * a small hand-written bridge, with a docstring saying why, and its own tests.
  *
  * Two properties are load-bearing:
  *

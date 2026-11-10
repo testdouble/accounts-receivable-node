@@ -2,8 +2,8 @@
  * The invoice arithmetic, tested without a database or an HTTP request.
  *
  * The two tests that matter most are "an override of zero is a free line" and "a
- * zero-priced catalog row still counts": each pins a place where a previous port of
- * this app got the money wrong.
+ * zero-priced catalog row still counts": each pins a place where it is easy to get the
+ * money wrong.
  */
 import { describe, expect, it } from 'vitest';
 import { DomainValidationError } from '../src/domain/errors.ts';
@@ -40,7 +40,7 @@ describe('subtotalCents', () => {
   });
 
   it('is zero for a quantity of zero', () => {
-    // Rails permits quantity 0 and so does this port; see the README.
+    // A quantity of zero is permitted; see the README.
     expect(subtotalCents(8000, 0)).toBe(0);
   });
 
@@ -65,14 +65,12 @@ describe('invoiceTotalCents', () => {
   });
 
   it('counts a line item whose catalog row is priced at zero', () => {
-    // Rails filters these out of both the table and the total. This port does not.
     const free = subtotalCents(unitPriceCents(null, 0), 10);
     expect(invoiceTotalCents([{ subtotalCents: free }, { subtotalCents: 500 }])).toBe(500);
   });
 
   it('counts an overridden line item whose catalog row is priced at zero', () => {
-    // The sharpest version of the Rails bug: the row is dropped even though its
-    // override is what should be billed.
+    // The override is what should be billed, even though the catalog row is free.
     const overridden = subtotalCents(unitPriceCents(2500, 0), 2);
     expect(invoiceTotalCents([{ subtotalCents: overridden }])).toBe(5000);
   });
@@ -117,13 +115,13 @@ describe('assertProductXorService', () => {
     }).not.toThrow();
   });
 
-  it('rejects neither, with the message the Rails app uses', () => {
+  it('rejects neither, with the documented message', () => {
     expect(() => {
       assertProductXorService({ productId: null, serviceId: null });
     }).toThrow(new DomainValidationError('A line item must be either a product or a service'));
   });
 
-  it('rejects both, with the message the Rails app uses', () => {
+  it('rejects both, with the documented message', () => {
     expect(() => {
       assertProductXorService({ productId: 1, serviceId: 1 });
     }).toThrow(new DomainValidationError("A line item can't be both a product and a service"));

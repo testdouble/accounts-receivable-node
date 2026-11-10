@@ -1,7 +1,6 @@
 /**
- * Clients: the full CRUD surface, including the two behaviours this port decided on
- * deliberately -- a duplicate email is allowed, and deleting a client that still has
- * invoices is a 409.
+ * Clients: the full CRUD surface, including the two deliberate behaviours -- a
+ * duplicate email is allowed, and deleting a client that still has invoices is a 409.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ClientResponse } from '../src/api/schemas.ts';
@@ -108,8 +107,6 @@ describe('POST /api/clients', () => {
   });
 
   it('is a 422 for a blank name', async () => {
-    // Rails has no validations on this model at all, so a blank name reaches the NOT
-    // NULL constraint and surfaces as a 500. This port validates instead.
     const response = await app.request
       .post('/api/clients')
       .send({ name: '', email: 'ap@acme.com' });
@@ -119,9 +116,8 @@ describe('POST /api/clients', () => {
   });
 
   it('allows two clients to share one email address', async () => {
-    // Pins a deliberate schema decision: Rails declares no uniqueness constraint here,
-    // two subsidiaries can share one accounts-payable address, and an earlier Node port
-    // of this app silently added a unique index.
+    // Pins a deliberate schema decision: there is no uniqueness constraint on email,
+    // because two subsidiaries can share one accounts-payable address.
     const first = await app.request
       .post('/api/clients')
       .send({ name: 'Acme inc', email: 'ap@acme.com' });
@@ -212,8 +208,7 @@ describe('DELETE /api/clients/:id', () => {
   });
 
   it('is a 409 when the client still has invoices', async () => {
-    // Rails declares the association with no `dependent:`, so it raises; the Django
-    // port uses PROTECT. Both become a 409 here.
+    // The invoices foreign key is declared `restrict`.
     const acme = await createClient(app.db);
     await createInvoice(app.db, { clientId: acme.id });
 

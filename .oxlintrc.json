@@ -38,8 +38,8 @@
     // OFF, both of them. The longest things in this codebase are declarative: the route
     // tables in src/api/, the status-code dispatch in src/api/errors.ts, and the
     // invoice/line-item query module. Each reads as one list, and chopping a list in
-    // half to get under a line count makes it harder to check against the Rails app it
-    // ports. Length here is a review question, not a lint one.
+    // half to get under a line count helps nobody. Length here is a review question,
+    // not a lint one.
     "eslint/max-lines-per-function": "off",
     "eslint/max-lines": "off"
   },

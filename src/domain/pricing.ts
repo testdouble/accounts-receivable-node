@@ -15,11 +15,10 @@ import { DomainValidationError } from './errors.ts';
  * `??`, NOT `||`.
  *
  * An override of 0 is a free line, and `||` would treat it as absent and fall through
- * to the catalog price instead -- turning a free line into a charged one. An earlier
- * abandoned Node port of this app ignored the override entirely, and its one
- * business-logic test asserted the resulting wrong total. `oxlint --type-aware` runs
- * `typescript/prefer-nullish-coalescing` and `typescript/strict-boolean-expressions`
- * as errors, so writing it the wrong way fails ./lint.sh.
+ * to the catalog price instead -- turning a free line into a charged one. `oxlint
+ * --type-aware` runs `typescript/prefer-nullish-coalescing` and
+ * `typescript/strict-boolean-expressions` as errors, so writing it the wrong way fails
+ * ./lint.sh.
  */
 export function unitPriceCents(
   priceOverrideCents: number | null,
@@ -35,11 +34,8 @@ export function subtotalCents(unitPrice: number, quantity: number): number {
 /**
  * Every line item's subtotal, summed.
  *
- * Note what is NOT here. The Rails invoice page selects its line items with
- * `where("products.price_cents != 0")`, which silently drops rows whose catalog entry
- * is priced at zero out of both the rendered table and the total -- even when the row
- * carries a non-zero override. That is a bug, not a rule, and this port does not
- * reproduce it. See the README section "Rails behaviour deliberately not ported".
+ * Every row counts, including one whose catalog entry is priced at zero. Filtering
+ * those out would drop a row that carries a non-zero override.
  */
 export function invoiceTotalCents(items: readonly { subtotalCents: number }[]): number {
   return items.reduce((total, item) => total + item.subtotalCents, 0);
@@ -59,10 +55,10 @@ export function dueDate(createdAt: Date, netDays: number): string {
 }
 
 /**
- * Rails' `LineItem#must_be_product_or_service`.
+ * Exactly one of product or service.
  *
- * Both messages are reproduced verbatim, because they are the observable contract: a
- * consumer moving off the Rails app should see byte-identical strings.
+ * Both messages are part of the observable contract, so they are asserted verbatim in
+ * `tests/pricing.test.ts`.
  *
  * Written as explicit `=== null` rather than a truthiness check. No row id can be 0, so
  * truthiness would work here -- but reaching for truthiness on a nullable number is the

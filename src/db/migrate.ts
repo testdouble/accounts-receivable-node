@@ -3,9 +3,7 @@
  *
  * Exported as a function so the test suite can call it in-process against an in-memory
  * database, which is the same code path production takes -- a broken migration fails
- * the test suite rather than only the deploy. (An earlier abandoned Node port of this
- * app shelled out to `npm run db:migrate:prod` once per test file, spawning npm, then
- * prisma, then another node, for every file.)
+ * the test suite rather than only the deploy.
  */
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { env } from '../env.ts';

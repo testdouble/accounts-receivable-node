@@ -113,9 +113,9 @@ LineItem  { id, invoiceId, productId, serviceId, priceOverrideCents, quantity,
             description, unitPriceCents, subtotalCents, createdAt, updatedAt }
 ```
 
-Errors use the same shape as the Django port, which in turn is Pydantic's, so a consumer
-can handle either port's failures with one code path: `{"detail": "..."}` for a single
-failure and `{"detail": [{"type", "loc", "msg"}]}` for validation.
+Errors are one shape throughout, so a consumer can handle every failure with one code
+path: `{"detail": "..."}` for a single failure and `{"detail": [{"type", "loc",
+"msg"}]}` for validation.
 
 | Status | When                                                   |
 | ------ | ------------------------------------------------------ |
@@ -176,10 +176,9 @@ to the tree. Drop it once drizzle-kit moves off the shims.
 `.tool-versions` is the single source of truth, and pins **Node 26.13.0**.
 
 Node 26 (`Lithium`) became Active LTS on 2026-10-28, which is the same day Node 24
-(`Krypton`) moved to Maintenance. The Rails app this ports pins `nodejs 24.14.1`, so
-this is a deliberate step off the family's shared major: 24 now receives only critical
-fixes, and nothing in this stack blocks 26. Node 25 is not an option — it reached end of
-life in June 2026 and falls outside Vitest 5's `engines` range.
+(`Krypton`) moved to Maintenance. 24 now receives only critical fixes, and nothing in
+this stack blocks 26. Node 25 is not an option — it reached end of life in June 2026 and
+falls outside Vitest 5's `engines` range.
 
 `better-sqlite3` is built on Node-API and ships prebuilt binaries for all eight
 supported platforms inside its own tarball, so there is no native rebuild on a Node major
@@ -245,8 +244,8 @@ it. The two worth calling out:
   domain function that takes an options object. It is off by default upstream for the
   same reason.
 - `max-lines` and `max-lines-per-function` are off. The longest things here are
-  declarative — the route tables, the status-code dispatch — and splitting a list in half
-  to get under a counter makes it harder to check against the Rails app it ports.
+  declarative — the route tables, the status-code dispatch — and each reads as one list.
+  Length here is a review question, not a lint one.
 
 Inside `tests/`, the `no-unsafe-*` family is off, because `@types/supertest` declares
 `Response.body` as `any` and every HTTP assertion would trip it. The narrowing those
@@ -256,8 +255,8 @@ through their Zod response schema, which is a stronger check because it runs.
 ### Where the domain logic lives
 
 Drizzle is a query builder. It has no model hooks, no validations and no computed
-properties, so everything Rails puts on an `ActiveRecord` model and Django puts on a
-`Model` lives in `src/domain/` here instead:
+properties, so the validations and computed properties an ORM with model hooks would
+carry live in `src/domain/` instead:
 
 - `pricing.ts` is pure — no Drizzle import, no Express import. The four rules that are
   the whole reason this application exists are plain functions over plain numbers, and
@@ -274,9 +273,7 @@ A line item bills `priceOverrideCents ?? catalogPriceCents`. **Not `||`.**
 
 `null` means "no override, bill the catalog price". An override of `0` means a free
 line, and `||` would treat it as absent and bill the catalog price instead — silently
-turning a free line into a charged one. An earlier abandoned Node port of this
-application ignored the override entirely, and its single business-logic test asserted
-the resulting wrong total rather than catching it.
+turning a free line into a charged one.
 
 This is guarded three ways: `prefer-nullish-coalescing` and `strict-boolean-expressions`
 fail `./lint.sh` on the wrong spelling, `tests/pricing.test.ts` asserts the
@@ -297,11 +294,11 @@ rather than shipping a hole in the JSON, which is what makes the response schema
 rather than prose. And because the document and the runtime guard read the same objects,
 the documentation cannot drift from the API.
 
-`src/api/route.ts` is the small adapter that makes that work. Express has no equivalent
-of Django Ninja's `@router.get(..., response=Schema)`, so one `route()` declaration both
-mounts an Express handler and records an OpenAPI operation. Routes are values in a plain
-array, so `openapi.ts` cannot document an endpoint that is not mounted and `app.ts`
-cannot mount one that is not documented.
+`src/api/route.ts` is the small adapter that makes that work. Express has no way to bind
+a response schema to a route, so one `route()` declaration both mounts an Express
+handler and records an OpenAPI operation. Routes are values in a plain array, so
+`openapi.ts` cannot document an endpoint that is not mounted and `app.ts` cannot mount
+one that is not documented.
 
 Swagger UI's assets are served straight out of `swagger-ui-dist`. The usual wrapper,
 `swagger-ui-express`, was last published in May 2024 and its only dependency is an
@@ -310,65 +307,40 @@ dependencies is whatever that package published most recently.
 
 ### Field naming
 
-The JSON API is **camelCase** — `priceCents`, `netDays`, `dueDate`, `totalCents`.
-
-This diverges from the Rails and Django ports, which are snake_case, so a consumer
-cannot move between the ports without remapping keys. It is a deliberate choice in
-favour of idiomatic TypeScript.
+The JSON API is **camelCase** — `priceCents`, `netDays`, `dueDate`, `totalCents`. A
+deliberate choice in favour of idiomatic TypeScript.
 
 The database is unaffected. `src/db/schema.ts` declares camelCase properties and the
-Drizzle handle is created with `casing: 'snake_case'`, so the SQL keeps the Rails column
-names — `price_cents`, `net_days`, `client_id` — and there is no mapping layer anywhere
-in between. `drizzle.config.ts` sets the same option, and the two must agree or the
+Drizzle handle is created with `casing: 'snake_case'`, so the SQL columns stay snake_case
+— `price_cents`, `net_days`, `client_id` — and there is no mapping layer anywhere in
+between. `drizzle.config.ts` sets the same option, and the two must agree or the
 generated SQL and the runtime queries will disagree about column names.
 
 ### Deliberate schema decisions
 
-**`clients.email` is not unique.** Rails declares no uniqueness constraint on it, two
-subsidiaries can share one accounts-payable address, and adding one would change
-observable behaviour: a duplicate `POST` would become a `409` where Rails and the Django
-port both return `201`. The abandoned Prisma port added a unique index here silently.
-`tests/clients.test.ts` pins the current behaviour.
+**`clients.email` is not unique.** Two subsidiaries can share one accounts-payable
+address, so a duplicate `POST` is a `201` rather than a `409`. `tests/clients.test.ts`
+pins that.
 
-**Foreign key actions mirror Rails' associations.** Line items cascade from their
-invoice, which is `dependent: :destroy`. Invoices restrict on their client, because
-Rails declares that association with no `dependent:` option and therefore raises;
-deleting a client that still has invoices is a `409` here.
+**Foreign key actions.** Line items cascade from their invoice, so deleting an invoice
+takes its line items with it. Invoices restrict on their client, so deleting a client
+that still has invoices is a `409`.
 
-**`note` and `description` are `null`, not `""`.** The Rails columns are genuinely
-nullable, so `null` is the honest serialisation. The Django port coerces them to an
-empty string via `blank=True`.
+**`note` and `description` are `null`, not `""`.** Both columns are genuinely nullable,
+so `null` is the honest serialisation.
 
-### Rails behaviour deliberately not ported
+**A `quantity` of zero or below, a negative `priceCents` and a negative
+`priceOverrideCents` are all accepted.** Tightening any of them would be a new business
+rule, so each is left to the caller.
 
-Each of these is commented where someone would otherwise restore it.
-
-1. **The zero-price filter.** `InvoicesController#show` selects line items with
-   `where("products.price_cents != 0")`, which silently drops rows whose catalog entry is
-   priced at zero out of both the rendered table and the total — even when the row carries
-   a non-zero override. That is a bug, not a rule.
-2. **`InvoicesHelper#to_money`**, which raises `IndexError` for 1–9 cents and misformats
-   10–99. This API returns integer cents and has no formatting layer at all.
-3. **`after_action :save_line_items`**, which re-saves every line item on every
-   non-index request — a write on `GET`, and again after `destroy`.
-4. **HTTP 200 on validation failure.** Rails re-renders the form with a `200`; this API
-   returns `422`.
-5. **Missing model validations.** Rails has none at all, so a blank name reaches the
-   `NOT NULL` constraint and surfaces as a `500`. This API validates and returns `422`.
-6. **The `PUT` route.** Rails' `PUT` and `PATCH` dispatch to the identical `update`
-   action, so `PUT` is an artifact of the route generator. Shipping both would mean two
-   update paths to keep from diverging; `PATCH` with a partial body, accepting explicit
-   `null` for nullable columns, expresses everything a `PUT` could.
-
-What Rails permits and this port still permits, on purpose: a `quantity` of zero or
-below, a negative `priceCents`, and a negative `priceOverrideCents`. Tightening any of
-them would be a new business rule rather than a port of an existing one.
+**There is no `PUT`.** `PATCH` with a partial body, accepting an explicit `null` for
+nullable columns, expresses everything a `PUT` could, and shipping both would mean two
+update paths to keep from diverging.
 
 ### Migrations
 
 `npm run db:generate` runs `drizzle-kit generate`, writing versioned SQL into `drizzle/`
-along with its metadata. Both are committed: the SQL is the review artifact, the same way
-`db/schema.rb` and Django's `migrations/` are in the sibling ports.
+along with its metadata. Both are committed, and the SQL is the review artifact.
 
 `drizzle-kit push` is deliberately not used. It mutates the database with no migration
 file, so there would be nothing to review and nothing for the tests to replay.
@@ -401,8 +373,7 @@ to serialise it.
 - **`@types/better-sqlite3` is at 9.6.0 against a runtime 13.0.3.** `better-sqlite3`
   ships no types of its own and DefinitelyTyped has not kept up, so `skipLibCheck` is on.
 - **`$onUpdate` on `updatedAt` fires only through Drizzle.** There is no SQL trigger, so
-  a raw `UPDATE` will not touch it. That is the same contract ActiveRecord has, so it is
-  a faithful port rather than an oversight.
+  a raw `UPDATE` will not touch it.
 - **`PRAGMA foreign_keys` is set explicitly** on every connection, in
   `src/db/client.ts`. It is per-connection, is not stored in the database file, and
   better-sqlite3's own default for it has moved across major versions.

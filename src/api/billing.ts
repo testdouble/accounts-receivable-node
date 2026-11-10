@@ -35,8 +35,8 @@ export const invoiceRoutes: Route[] = [
     operationId: 'listInvoices',
     summary: 'Every invoice, in id order, with its due date and total',
     tags: invoiceTags,
-    // The only filter beyond what the Django port exposes. With no frontend, this is
-    // the only way to narrow the list without pulling the whole table.
+    // With no frontend, this is the only way to narrow the list without pulling the
+    // whole table.
     query: InvoiceQuery,
     status: 200,
     response: z.array(InvoiceResponse),
