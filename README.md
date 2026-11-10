@@ -15,55 +15,44 @@ services.
 This project is an [Express](https://expressjs.com/) 5 application written in
 [TypeScript](https://www.typescriptlang.org/). It uses [SQLite](https://sqlite.org/) for
 the database and [Drizzle ORM](https://orm.drizzle.team/), with [Zod](https://zod.dev/)
-for validation and [OpenAPI](https://www.openapis.org/) documentation. Node versions are
-managed with [asdf](https://asdf-vm.com/).
+for validation and [OpenAPI](https://www.openapis.org/) documentation.
 
 There is no build step — Node runs the TypeScript directly. See
 [No build step](#no-build-step) below.
 
 ### Prerequisites
 
-Before you get started, be sure to:
+- A recent version of git (e.g. `brew install git` on a Mac)
+- Node **26.13.0**, the version in `.nvmrc`. Most Node version managers read that file
+  and should work. Two need a one-time setting before they will:
+  - [mise](https://mise.jdx.dev/): run
+    `mise settings add idiomatic_version_file_enable_tools node`
+  - [asdf](https://asdf-vm.com/): add `legacy_version_file = yes` to `~/.asdfrc`
 
-- Have a recent version of git installed (e.g. `brew install git` on a Mac)
-- Have asdf installed, with the nodejs plugin (`asdf plugin add nodejs`)
+  Or install Node 26.13.0 any other way you like. `node --version` should print
+  `v26.13.0`.
 
-### Initial setup
+### Setup
 
-    $ ./setup.sh
-
-That installs the pinned Node, installs dependencies, and applies migrations. If you
-would rather run the steps yourself:
-
-1. Install the Node version this project pins:
-
-        $ asdf install
-        $ asdf reshim nodejs 26.13.0
-
-2. Install dependencies:
-
-        $ npm ci --ignore-scripts
-
-   (Use the npm that came with the Node above. If you have another Node manager
-   installed — nodenv, nvm, fnm, Volta, Homebrew — its npm may well be the one on your
-   `PATH`, because asdf's own npm wrapper searches `PATH` with the asdf shims removed.
-   `setup.sh` sidesteps the whole problem by addressing
-   `"$(asdf where nodejs)/bin/npm"` directly.)
-
-3. Apply migrations:
-
-        $ node src/db/migrate.ts
+    $ npm install
+    $ npm run db:migrate
 
 Optionally load development seed data (two clients, two products, two services, and two
-Acme invoices with five line items between them):
+Acme invoices with five line items between them). It is safe to re-run and will not
+duplicate rows:
 
-    $ node src/seed.ts
-
-That command is safe to re-run; it will not duplicate rows.
+    $ npm run seed
 
 Then start the server:
 
-    $ ./run.sh
+    $ npm start
+
+Or, to restart automatically whenever a file changes:
+
+    $ npm run dev
+
+The server listens on port 3000. To use another port, set `PORT`, e.g.
+`PORT=4000 npm start`.
 
 And you should be able to browse the API documentation:
 [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
@@ -128,15 +117,24 @@ path: `{"detail": "..."}` for a single failure and `{"detail": [{"type", "loc",
 
 To run the suite of tests:
 
-    $ ./test.sh
+    $ npm test
 
 To run a single test file:
 
-    $ ./test.sh tests/line-items.test.ts
+    $ npm test -- tests/line-items.test.ts
 
-To type-check, lint and check formatting:
+To type-check:
 
-    $ ./lint.sh
+    $ npm run typecheck
+
+To lint:
+
+    $ npm run lint
+
+To check formatting, or to fix it:
+
+    $ npm run format:check
+    $ npm run format
 
 ## Notes
 
@@ -146,8 +144,8 @@ To type-check, lint and check formatting:
 | ----------------- | ---------------------------------------------------- |
 | Language          | TypeScript                                           |
 | Runtime           | Node.js (ESM, native type stripping — no build step) |
-| Version manager   | asdf                                                 |
-| Dependencies      | npm (`package-lock.json`, `npm ci`)                  |
+| Version manager   | Any that reads `.nvmrc`                              |
+| Dependencies      | npm (`package-lock.json`)                            |
 | HTTP framework    | Express 5                                            |
 | ORM               | Drizzle ORM                                          |
 | Migrations        | drizzle-kit                                          |
@@ -161,7 +159,7 @@ To type-check, lint and check formatting:
 | Format            | Prettier                                             |
 
 Every dependency in `package.json` is pinned exactly, with no `^` or `~`.
-`package-lock.json` is committed and `setup.sh` installs with `npm ci --ignore-scripts`.
+`package-lock.json` is committed, so `npm install` installs the same versions everywhere.
 
 There is one `overrides` entry, forcing `esbuild` to 0.25.12. `drizzle-kit` still depends
 on the deprecated `@esbuild-kit/*` shims, which pin esbuild 0.18 and so drag in
@@ -173,7 +171,7 @@ to the tree. Drop it once drizzle-kit moves off the shims.
 
 ### Node version
 
-`.tool-versions` is the single source of truth, and pins **Node 26.13.0**.
+`.nvmrc` is the single source of truth, and pins **Node 26.13.0**.
 
 Node 26 (`Lithium`) became Active LTS on 2026-10-28, which is the same day Node 24
 (`Krypton`) moved to Maintenance. 24 now receives only critical fixes, and nothing in
@@ -182,12 +180,13 @@ falls outside Vitest 5's `engines` range.
 
 `better-sqlite3` is built on Node-API and ships prebuilt binaries for all eight
 supported platforms inside its own tarball, so there is no native rebuild on a Node major
-upgrade and no compiler needed to install this project — as long as you install with
-`--ignore-scripts`. See [Installing with `--ignore-scripts`](#installing-with---ignore-scripts).
+upgrade and no compiler needed to install this project — as long as install scripts are
+skipped. See [Install scripts are skipped](#install-scripts-are-skipped).
 
-### Installing with `--ignore-scripts`
+### Install scripts are skipped
 
-`setup.sh` installs with `npm ci --ignore-scripts`, and so should you.
+`.npmrc` sets `ignore-scripts=true`, so a plain `npm install` never runs a dependency's
+install script. `npm start`, `npm test` and `npm run` are unaffected.
 
 Nothing in this project needs a postinstall script, and one package is actively harmed by
 running one. `better-sqlite3` ships Node-API prebuilds for every platform, but it also
@@ -201,9 +200,9 @@ through `optionalDependencies` and does not need one either.
 
 ### No build step
 
-Node's TypeScript type stripping is stable, so `./run.sh` is just `node src/server.ts`.
+Node's TypeScript type stripping is stable, so `npm start` is just `node src/server.ts`.
 There is no `tsc` build, no `tsx`, no `dist/`, and nothing to keep in sync. `tsc` is
-still installed, but only as a type checker — `./lint.sh` runs `tsc --noEmit`, and
+still installed, but only as a type checker — `npm run typecheck` runs `tsc --noEmit`, and
 nothing ever compiles.
 
 Three consequences are worth knowing before editing:
@@ -276,7 +275,7 @@ line, and `||` would treat it as absent and bill the catalog price instead — s
 turning a free line into a charged one.
 
 This is guarded three ways: `prefer-nullish-coalescing` and `strict-boolean-expressions`
-fail `./lint.sh` on the wrong spelling, `tests/pricing.test.ts` asserts the
+fail `npm run lint` on the wrong spelling, `tests/pricing.test.ts` asserts the
 override-of-zero case directly, and `tests/seed.test.ts` asserts the seeded invoice
 total of 2,480,000 cents, which reads 2,640,000 if the override is dropped.
 
@@ -345,9 +344,9 @@ along with its metadata. Both are committed, and the SQL is the review artifact.
 `drizzle-kit push` is deliberately not used. It mutates the database with no migration
 file, so there would be nothing to review and nothing for the tests to replay.
 
-Migrations are applied through Drizzle's programmatic migrator in `src/db/migrate.ts`,
-which the test suite calls in-process against its in-memory database. That means a
-broken migration fails `./test.sh`, not just the deploy.
+`npm run db:migrate` applies them through Drizzle's programmatic migrator in
+`src/db/migrate.ts`, which the test suite also calls in-process against its in-memory database. That means a
+broken migration fails `npm test`, not just the deploy.
 
 ### Tests
 

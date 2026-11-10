@@ -18,7 +18,7 @@ import { DomainValidationError } from './errors.ts';
  * to the catalog price instead -- turning a free line into a charged one. `oxlint
  * --type-aware` runs `typescript/prefer-nullish-coalescing` and
  * `typescript/strict-boolean-expressions` as errors, so writing it the wrong way fails
- * ./lint.sh.
+ * `npm run lint`.
  */
 export function unitPriceCents(
   priceOverrideCents: number | null,

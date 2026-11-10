@@ -4,16 +4,17 @@
   "private": true,
   "description": "Accounts Receivable - an Express + TypeScript JSON API for creating and tracking invoices",
   "type": "module",
-  "engines": {
-    "node": "^26.13.0"
-  },
   "scripts": {
     "start": "node src/server.ts",
+    "dev": "node --watch src/server.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node src/db/migrate.ts",
     "seed": "node src/seed.ts",
     "test": "vitest run",
-    "lint": "./lint.sh"
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint --type-aware",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",
