@@ -1,9 +1,8 @@
 /**
- * The seed data, and the end-to-end assertion this whole port is measured by.
+ * The seed data, and the end-to-end assertion the pricing rules are measured by.
  *
  * The first invoice totals 2,480,000 cents only if the price override is honoured AND
- * no zero-price filter is applied. Get the override wrong the way the abandoned Prisma
- * port did and it reads 2,640,000.
+ * no zero-price filter is applied. Get the override wrong and it reads 2,640,000.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { seed } from '../src/seed.ts';
@@ -50,7 +49,7 @@ describe('seed', () => {
     );
   });
 
-  it('totals the two invoices the way the Rails app does', async () => {
+  it('totals the two invoices', async () => {
     await seed(app.db);
 
     const invoices = await listInvoices(app.db);

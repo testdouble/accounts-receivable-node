@@ -58,8 +58,7 @@ export function buildDocument() {
   const paths: Record<string, Record<string, unknown>> = {};
 
   for (const route of ALL_ROUTES) {
-    // Prefixed with /api so the document's keys are the URLs a consumer actually calls,
-    // which is how the Django port's openapi.json reads too.
+    // Prefixed with /api so the document's keys are the URLs a consumer actually calls.
     const key = `/api${route.path.replaceAll(EXPRESS_PARAM, '{$1}')}`;
     const operations = (paths[key] ??= {});
 

@@ -3,14 +3,11 @@
  *
  * Every row is keyed on a natural key -- a name, or an invoice's note, or a line item's
  * description -- and inserted only when it is missing. That is what makes re-running
- * harmless. An earlier abandoned Node port of this app upserted on hardcoded primary
- * keys (`where: { id: 1 }`), which only works on a database that is already empty and
- * silently overwrites whatever else holds those ids.
+ * harmless. Upserting on hardcoded primary keys would only work on a database that is
+ * already empty, and would silently overwrite whatever else holds those ids.
  *
- * The data mirrors `db/seeds.rb` in the Rails app and the Django port's `seed` command,
- * so the three ports can be compared row for row. The row that matters most is
- * "Justin's discount programming", whose price override is what makes the first
- * invoice's total 2,480,000 cents rather than 2,640,000.
+ * The row that matters most is "Justin's discount programming", whose price override is
+ * what makes the first invoice's total 2,480,000 cents rather than 2,640,000.
  *
  * Every database call in this file is awaited in sequence, and `no-await-in-loop` is
  * switched off for it in .oxlintrc.json. That is deliberate: each phase depends on rows

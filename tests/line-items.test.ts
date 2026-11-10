@@ -2,9 +2,9 @@
  * Line items -- the resource that carries this application's two real rules: exactly
  * one of product or service, and the price override.
  *
- * The test that matters most is "an override of zero is a free line". An earlier
- * abandoned Node port of this app ignored the override entirely, and its one
- * business-logic test asserted the wrong total rather than catching it.
+ * The test that matters most is "an override of zero is a free line": ignoring the
+ * override, or treating an override of zero as absent, bills the catalog price
+ * instead.
  */
 import { sql } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 
 describe('the product-or-service rule', () => {
-  it('is a 422 with the Rails message when neither is given', async () => {
+  it('is a 422 when neither is given', async () => {
     const invoice = await createInvoice(app.db);
 
     const response = await app.request.post('/api/line-items').send({ invoiceId: invoice.id });
@@ -33,7 +33,7 @@ describe('the product-or-service rule', () => {
     expect(response.body.detail[0].msg).toBe('A line item must be either a product or a service');
   });
 
-  it('is a 422 with the Rails message when both are given', async () => {
+  it('is a 422 when both are given', async () => {
     const invoice = await createInvoice(app.db);
     const product = await createProduct(app.db);
     const service = await createService(app.db);
@@ -120,7 +120,7 @@ describe('pricing', () => {
     expect(invoiceResponse.body.totalCents).toBe(0);
   });
 
-  it("prices the seed's discounted row the way the Rails app does", async () => {
+  it('prices a discounted row from its override', async () => {
     const invoice = await createInvoice(app.db);
     const programming = await createService(app.db, { priceCents: 8000 });
 
@@ -157,7 +157,7 @@ describe('pricing', () => {
     });
   });
 
-  it('accepts a negative override, as Rails does', async () => {
+  it('accepts a negative override', async () => {
     const invoice = await createInvoice(app.db);
     const service = await createService(app.db, { priceCents: 8000 });
 

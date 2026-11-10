@@ -3,7 +3,7 @@
  *
  * The arithmetic itself lives in `pricing.ts` as pure functions. This module's job is
  * to load the rows those functions need, in one query rather than N, and to enforce the
- * rules Rails puts on the model.
+ * rules that govern a line item.
  */
 import { asc, eq, sql } from 'drizzle-orm';
 import type { Db } from '../db/client.ts';
@@ -53,9 +53,9 @@ type LoadedLineItem = typeof lineItems.$inferSelect & {
  * The catalog price a line item falls back to.
  *
  * `?? 0` for the case where a row references neither a product nor a service.
- * `assertProductXorService` makes that unreachable through this API, but the Rails
- * schema allows it at the database level, so a row written by anything else still has
- * to produce a number rather than `NaN`.
+ * `assertProductXorService` makes that unreachable through this API, but the schema
+ * allows it at the database level, so a row written by anything else still has to
+ * produce a number rather than `NaN`.
  */
 function catalogPriceCents(row: LoadedLineItem): number {
   return row.product?.priceCents ?? row.service?.priceCents ?? 0;
@@ -96,8 +96,7 @@ function toInvoiceRecord(row: LoadedInvoice): InvoiceRecord {
  * Every invoice with the rows `totalCents` needs already loaded.
  *
  * One query via the relational query builder, which is why `schema.ts` declares
- * `relations()` at all. The direct analog of the Django port's
- * `prefetch_related("line_items__product", "line_items__service")`.
+ * `relations()` at all.
  */
 const WITH_LINE_ITEM_PRICING = {
   lineItems: { with: { product: true, service: true } },
@@ -109,8 +108,7 @@ const WITH_LINE_ITEM_PRICING = {
  * Checks a referenced row exists before writing.
  *
  * The foreign keys would catch this, but as an opaque constraint error. Checking here
- * turns it into a 422 that names the offending field -- which is precisely the class of
- * 500 the Rails app returns and this port deliberately does not.
+ * turns it into a 422 that names the offending field rather than an opaque 500.
  */
 async function assertExists(
   db: Db,
@@ -192,9 +190,8 @@ export async function updateInvoice(
 }
 
 export async function deleteInvoice(db: Db, id: number): Promise<void> {
-  // No referential pre-check: the line_items foreign key is declared `cascade`, which
-  // is Rails' `dependent: :destroy`, so deleting an invoice is meant to take its line
-  // items with it.
+  // No referential pre-check: the line_items foreign key is declared `cascade`, so
+  // deleting an invoice is meant to take its line items with it.
   const deleted = await db.delete(invoices).where(eq(invoices.id, id)).returning();
 
   if (deleted.length === 0) {

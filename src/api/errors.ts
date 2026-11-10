@@ -1,9 +1,9 @@
 /**
  * The one place an exception becomes a status code.
  *
- * The body shape follows the Django port's, which in turn follows Pydantic's: a bare
- * string in `detail` for a single failure, an array of `{type, loc, msg}` for
- * validation. A consumer can therefore handle either port's errors with one code path.
+ * One body shape throughout: a bare string in `detail` for a single failure, an array
+ * of `{type, loc, msg}` for validation. A consumer can therefore handle every error
+ * with one code path.
  */
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { ConflictError, DomainValidationError, NotFoundError, type Loc } from '../domain/errors.ts';
@@ -86,8 +86,8 @@ export const notFound: RequestHandler = (_req, res) => {
 export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _next) => {
   if (error instanceof RequestValidationError) {
     // A malformed path or query string is a malformed request line, so 400. A
-    // well-formed body that breaks the rules is unprocessable, so 422. The Django port
-    // returns 422 for both; splitting them is deliberate and documented in the README.
+    // well-formed body that breaks the rules is unprocessable, so 422. Splitting them is
+    // deliberate and documented in the README.
     const status = error.where === 'body' ? 422 : 400;
     res.status(status).json({ detail: toDetails(error.where, error.issues) });
     return;

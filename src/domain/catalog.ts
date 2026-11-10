@@ -1,9 +1,8 @@
 /**
  * Products and services.
  *
- * One implementation for both. The two tables are identical in the Rails schema, and
- * the Django port makes the same call for the same reason -- a second copy of these
- * five functions would be a second place for them to drift.
+ * One implementation for both. The two tables are identical, and a second copy of
+ * these five functions would be a second place for them to drift.
  */
 import { asc, eq, sql } from 'drizzle-orm';
 import type { Db } from '../db/client.ts';

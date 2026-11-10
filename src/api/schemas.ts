@@ -38,11 +38,7 @@ const id = z
 
 // --- Shared ---------------------------------------------------------------------------
 
-/**
- * One validation failure, in the shape Pydantic uses -- and therefore the shape the
- * Django port of this app returns -- so a consumer can handle both ports' errors with
- * the same code.
- */
+/** One validation failure: the `{type, loc, msg}` shape every error body is built from. */
 export const ErrorDetail = z
   .object({
     type: z.string().meta({ examples: ['value_error'] }),
@@ -90,8 +86,7 @@ const optionalIdQuery = () =>
  * The health response.
  *
  * Exists so that at least one endpoint genuinely exercises the Zod validation path on
- * every request rather than merely importing it -- the same reason the Django port has
- * one.
+ * every request rather than merely importing it.
  */
 export const HealthResponse = z
   .object({
@@ -113,9 +108,8 @@ export const ClientCreate = z
       .min(1)
       .max(255)
       .meta({ examples: ['Acme inc'] }),
-    // Validated as an address, which Rails does not do at all -- it has no validations
-    // on this model, so a blank name reaches the NOT NULL constraint and surfaces as a
-    // 500. See the README: that is one of the Rails behaviours deliberately not ported.
+    // Validated as an address, so a malformed one is a 422 rather than a row nobody can
+    // send an invoice to.
     email: z
       .email()
       .max(255)
@@ -128,8 +122,7 @@ export const ClientUpdate = ClientCreate.partial().meta({ id: 'ClientUpdate' });
 // --- Catalog (products and services) --------------------------------------------------
 
 /**
- * `products` and `services` are identical in the Rails schema, so their shapes are
- * built once. Each still gets its own component id, because an OpenAPI consumer should
+ * `products` and `services` are identical, so their shapes are built once. Each still gets its own component id, because an OpenAPI consumer should
  * see two named types rather than one shared one.
  */
 const catalogShape = {
@@ -145,8 +138,7 @@ const catalogWriteShape = {
     .min(1)
     .max(255)
     .meta({ examples: ['Anti-virus software'] }),
-  // Not constrained to be positive: Rails permits any integer here, and tightening it
-  // would be a new business rule rather than a port of an existing one.
+  // Not constrained to be positive: tightening it would be a new business rule.
   priceCents: z.int().meta({ examples: [20_000] }),
 };
 
@@ -179,8 +171,8 @@ export const InvoiceCreate = z
   .object({
     clientId: id,
     netDays: z.int().default(30),
-    // Nullable rather than coerced to '': the Rails column is genuinely nullable, so
-    // `null` is the honest serialisation. The Django port returns '' instead.
+    // Nullable rather than coerced to '': the column is genuinely nullable, so `null`
+    // is the honest serialisation.
     note: z.string().max(255).nullable().default(null),
   })
   .meta({ id: 'InvoiceCreate' });
@@ -220,8 +212,8 @@ export const LineItemCreate = z
   .object({
     invoiceId: id,
     // Both nullable and both defaulted: the "exactly one" rule is a domain rule with
-    // specific wording borrowed from Rails, so it is enforced in src/domain/pricing.ts
-    // rather than as a Zod refinement, where the message would be harder to control.
+    // specific wording, so it is enforced in src/domain/pricing.ts rather than as a Zod
+    // refinement, where the message would be harder to control.
     productId: id.nullable().default(null),
     serviceId: id.nullable().default(null),
     priceOverrideCents: z.int().nullable().default(null),

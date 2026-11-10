@@ -50,10 +50,10 @@ export async function createInvoice(db: Db, overrides: Partial<typeof invoices.$
 /**
  * Builds a line item with NEITHER a product nor a service.
  *
- * Deliberate, and the same choice the Django port's factory makes: the caller passes
- * exactly one, so the product-or-service rule stays testable from both sides. Note this
- * writes straight through Drizzle and so bypasses `assertProductXorService` -- which is
- * how a test can set up the invalid row the API refuses to create.
+ * Deliberate: the caller passes exactly one, so the product-or-service rule stays
+ * testable from both sides. Note this writes straight through Drizzle and so bypasses
+ * `assertProductXorService` -- which is how a test can set up the invalid row the API
+ * refuses to create.
  */
 export async function createLineItem(
   db: Db,

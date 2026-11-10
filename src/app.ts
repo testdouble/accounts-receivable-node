@@ -7,8 +7,7 @@
  *
  * Middleware is deliberately minimal: a JSON body parser, the routes, a 404 and the
  * error handler. There is no helmet, no CORS and no request logging, because this
- * application has no users, no sessions and no browser client -- the same call the
- * Django port makes.
+ * application has no users, no sessions and no browser client.
  */
 import express, { type Express } from 'express';
 import type { Db } from './db/client.ts';

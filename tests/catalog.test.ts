@@ -113,8 +113,8 @@ describe.each(RESOURCES)('$plural', (resource) => {
   });
 
   it('accepts a price of zero', async () => {
-    // Rails allows it, and unlike Rails this port does not then hide the row from
-    // invoices. See tests/invoices.test.ts.
+    // A zero-priced row is allowed, and it is not then hidden from invoices. See
+    // tests/invoices.test.ts.
     const response = await app.request.post(path).send({ name: 'Freebie', priceCents: 0 });
 
     expect(response.status).toBe(201);
