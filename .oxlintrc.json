@@ -13,7 +13,7 @@
     // The rules this project exists to enforce. `prefer-nullish-coalescing` is the one
     // that guards the override-of-zero invariant in src/domain/pricing.ts, and
     // `strict-boolean-expressions` catches the same mistake written as `if (override)`.
-    // Both need type information, which is why ./lint.sh passes --type-aware.
+    // Both need type information, which is why `npm run lint` passes --type-aware.
     "typescript/prefer-nullish-coalescing": "error",
     "typescript/strict-boolean-expressions": "error",
     "typescript/no-unnecessary-condition": "error",

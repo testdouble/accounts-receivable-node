@@ -13,7 +13,7 @@
 
     // --- No build step -------------------------------------------------------------
     // Node strips the types itself, so nothing is ever emitted and tsc is only ever a
-    // type checker (see lint.sh). Relative imports therefore name the real file on
+    // type checker (see `npm run typecheck`). Relative imports therefore name the real file on
     // disk -- './foo.ts', not './foo' -- which is what Node resolves.
     "noEmit": true,
     "allowImportingTsExtensions": true,
